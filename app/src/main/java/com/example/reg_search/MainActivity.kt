@@ -296,7 +296,7 @@ class MainActivity : AppCompatActivity() {
             pattern.drop(1).takeWhile { it.isDigit() || it == '?' }.length in 1..3 &&
             pattern.takeLast(3).all { it.isLetter() || it == '?' }
 
-        val suffixDigitsLen = pattern.drop(3).takeWhile { it.isDigit() || it == '?' }.length
+        val suffixDigitsLen = pattern.drop(3).dropLast(1).takeWhile { it.isDigit() || it == '?' }.length
         val isSuffixFormat = pattern.length in 5..7 &&
             pattern.take(3).all { it.isLetter() || it == '?' } &&
             suffixDigitsLen in 1..3 &&
