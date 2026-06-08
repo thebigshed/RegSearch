@@ -43,6 +43,7 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var patternInput: EditText
     private lateinit var cameraButton: ImageButton
+    private lateinit var eraSpinner: Spinner
     private lateinit var makeSpinner: Spinner
     private lateinit var colorSpinner: Spinner
     private lateinit var errorButton: Button
@@ -101,6 +102,7 @@ class MainActivity : AppCompatActivity() {
 
         patternInput = findViewById(R.id.patternInput)
         cameraButton = findViewById(R.id.cameraButton)
+        eraSpinner = findViewById(R.id.eraSpinner)
         makeSpinner = findViewById(R.id.makeSpinner)
         colorSpinner = findViewById(R.id.colorSpinner)
         errorButton = findViewById(R.id.errorButton)
@@ -128,6 +130,11 @@ class MainActivity : AppCompatActivity() {
         recyclerView.adapter = vehicleAdapter
 
         setupSpinners(emptyList(), emptyList())
+
+        val eraOptions = listOf("Any era", "2001–present (current)", "1983–2001 (prefix)", "1963–1983 (suffix)")
+        val eraAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, eraOptions)
+        eraAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        eraSpinner.adapter = eraAdapter
 
         cameraButton.setOnClickListener {
             checkCameraPermission()
@@ -269,7 +276,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun generatePlates(pattern: String): List<String> {
+    private fun generatePlates(pattern: String, eraFilter: Int = 0): List<String> {
         val results = mutableListOf<String>()
         val wildcards = pattern.count { it == '?' }
         if (wildcards > 3) throw IllegalArgumentException("Max 3 wildcards allowed")
@@ -297,10 +304,11 @@ class MainActivity : AppCompatActivity() {
             (pattern.last() == '?' || pattern.last().isLetter())
 
         var handled = false
-        if (isCurrentFormat) { generateCurrentFormat(pattern.toCharArray(), 0, results); handled = true }
-        if (isPrefixFormat)  { generatePrefixFormat(pattern.toCharArray(), 0, results);  handled = true }
-        if (isSuffixFormat)  { generateSuffixFormat(pattern.toCharArray(), 0, results);  handled = true }
-        if (!handled) generateBruteForce(pattern.toCharArray(), 0, results)
+        val anyFormatDetected = isCurrentFormat || isPrefixFormat || isSuffixFormat
+        if (isCurrentFormat && (eraFilter == 0 || eraFilter == 1)) { generateCurrentFormat(pattern.toCharArray(), 0, results); handled = true }
+        if (isPrefixFormat  && (eraFilter == 0 || eraFilter == 2)) { generatePrefixFormat(pattern.toCharArray(), 0, results);  handled = true }
+        if (isSuffixFormat  && (eraFilter == 0 || eraFilter == 3)) { generateSuffixFormat(pattern.toCharArray(), 0, results);  handled = true }
+        if (!handled && !anyFormatDetected) generateBruteForce(pattern.toCharArray(), 0, results)
         return results.distinct()
     }
 
@@ -363,8 +371,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun runSearch(pattern: String) {
+        val eraFilter = eraSpinner.selectedItemPosition  // 0=any,1=current,2=prefix,3=suffix
         val plates = try {
-            generatePlates(pattern)
+            generatePlates(pattern, eraFilter)
         } catch (e: Exception) {
             stopSearch(e.message ?: "Error")
             return
